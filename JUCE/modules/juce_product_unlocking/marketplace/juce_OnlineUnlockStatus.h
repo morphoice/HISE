@@ -149,15 +149,12 @@ public:
     {
 		auto s = getPublicKey().toString().fromFirstOccurrenceOf(",", false, false);
 
-        var rv(true);
-        var x = status[unlockedProp] && s.contains(otherString);
+        var x = s.contains(otherString);
 
-        if(status[unlockedProp] && !x)
-            std::swap(x, rv);
-
-        status.setProperty(unlockedProp, x, nullptr);
+        if(!x)
+            status.setProperty(unlockedProp, false, nullptr);
         
-        return rv;
+        return x;
     }
 
     /** Returns the Time when the keyfile expires.
@@ -181,6 +178,10 @@ public:
 	 current unlocked state.
 	*/
 	bool unlockWithTime(Time verifiedTimeObject);
+
+#if JUCE_ALLOW_EXTERNAL_UNLOCK
+    inline void unlockExternal() { status.setProperty(unlockedProp, true, nullptr); };
+#endif
 
     /** Optionally allows the app to provide the user's email address if
         it is known.

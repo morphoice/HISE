@@ -2,8 +2,6 @@
 
 #pragma once
 
-
-
 namespace hise {
 namespace multipage {
 namespace library {
@@ -98,6 +96,7 @@ struct WelcomeScreen: public multipage::EncodedDialogBase
 		MULTIPAGE_BIND_CPP(WelcomeScreen, populateProjectSelector);
 		MULTIPAGE_BIND_CPP(WelcomeScreen, browseSnippets);
 		MULTIPAGE_BIND_CPP(WelcomeScreen, createProject);
+		MULTIPAGE_BIND_CPP(WelcomeScreen, openProject);
 		MULTIPAGE_BIND_CPP(WelcomeScreen, loadPresetFile);
 		MULTIPAGE_BIND_CPP(WelcomeScreen, startupSetter);
 		MULTIPAGE_BIND_CPP(WelcomeScreen, setupExport);
@@ -106,13 +105,79 @@ struct WelcomeScreen: public multipage::EncodedDialogBase
 
 	var populateProjectSelector(const var::NativeFunctionArgs& args);
 	var setupExport(const var::NativeFunctionArgs& args);
+	
 	var showDocs(const var::NativeFunctionArgs& args);
 	var browseSnippets(const var::NativeFunctionArgs& args);
 	var createProject(const var::NativeFunctionArgs& args);
+	var openProject(const var::NativeFunctionArgs& args);
 	var loadPresetFile(const var::NativeFunctionArgs& args);
 	var startupSetter(const var::NativeFunctionArgs& args);
 
 	Array<File> fileList;
+};
+
+struct HiseAudioExporter: public EncodedDialogBase,
+						  public DebugLogger::Listener
+{
+	HiseAudioExporter(BackendRootWindow* bpe);
+
+	enum class RecordState
+	{
+		Idle,
+		Waiting,
+		RecordingMidi,
+		RecordingAudio,
+		WritingToDisk,
+		Done,
+		numRecordStates
+	};
+
+	RecordState currentState = RecordState::Idle;
+	uint32 recordStart = 0;
+
+	void recordStateChanged(Listener::RecordState isRecording) override;
+
+	void bindCallbacks() override
+    {
+        MULTIPAGE_BIND_CPP(HiseAudioExporter, onExport);
+		MULTIPAGE_BIND_CPP(HiseAudioExporter, onComplete);
+    }
+
+	var onComplete(const var::NativeFunctionArgs& args);
+
+	var onExport(const var::NativeFunctionArgs& args);
+};
+
+
+
+struct ScriptnodeTemplateExporter: public EncodedDialogBase
+{
+	ScriptnodeTemplateExporter(BackendRootWindow* bpe, scriptnode::NodeBase* n);
+
+	void bindCallbacks() override
+    {
+        MULTIPAGE_BIND_CPP(ScriptnodeTemplateExporter, onCreate);
+    }
+
+    var onCreate(const var::NativeFunctionArgs& args)
+	{
+		auto isLocal = (bool)this->state->globalState["Location"];
+
+		zstd::ZDefaultCompressor comp;
+		MemoryBlock mb;
+
+		auto copy = node->getValueTree().createCopy();
+
+		DspNetworkListeners::PatchAutosaver::stripValueTree(copy);
+
+		auto t = isLocal ? BackendDllManager::FolderSubType::ProjectNodeTemplates : BackendDllManager::FolderSubType::GlobalNodeTemplates;
+		auto root = BackendDllManager::getSubFolder(getMainController(), t);
+		auto xml = copy.createXml();
+		root.getChildFile(node->getName()).withFileExtension("xml").replaceWithText(xml->createDocument(""));
+		return var();
+	}
+
+	NodeBase::Ptr node;
 };
 
 struct AboutWindow: public multipage::EncodedDialogBase
@@ -160,10 +225,12 @@ struct ReleaseStartOptionDialog: public multipage::EncodedDialogBase
 	Component* root;
 };
 
-struct NewProjectCreator: public ImporterBase,
+class NewProjectCreator: public ImporterBase,
 						  public multipage::EncodedDialogBase
 					      
 {
+public:
+
 	NewProjectCreator(hise::BackendRootWindow* bpe_);
 
 	void bindCallbacks() override

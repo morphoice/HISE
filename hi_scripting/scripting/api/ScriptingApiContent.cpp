@@ -1595,8 +1595,7 @@ void ScriptComponent::setConsumedKeyPresses(var listOfKeys)
 
 	if(listOfKeys.isArray())
 	{
-		catchAllKeys = false;
-				
+		catchAllKeys = AllCatchBehaviour::Inactive;
 		for(const auto& v: *listOfKeys.getArray())
 		{
 			auto k = ApiHelpers::getKeyPress(v, &r);
@@ -1611,15 +1610,19 @@ void ScriptComponent::setConsumedKeyPresses(var listOfKeys)
 	{
         if(listOfKeys.toString() == "all")
         {
-            catchAllKeys = true;
+            catchAllKeys = AllCatchBehaviour::Exclusive;
         }
+		else if(listOfKeys.toString() == "all_nonexclusive")
+		{
+			catchAllKeys = AllCatchBehaviour::NonExlusive;
+		}
         else
         {
             auto k = ApiHelpers::getKeyPress(listOfKeys, &r);
 
             if(r.wasOk())
             {
-                catchAllKeys = false;
+                catchAllKeys = AllCatchBehaviour::Inactive;
                 registeredKeys.add(k);
             }
             else
@@ -1636,18 +1639,16 @@ bool ScriptingApi::Content::ScriptComponent::handleKeyPress(const KeyPress& k)
 {
 	if (keyboardCallback)
 	{
-		if(catchAllKeys || registeredKeys.contains(k))
+		auto matchesKey = registeredKeys.contains(k);
+
+		if((catchAllKeys != AllCatchBehaviour::Inactive) || matchesKey)
 		{
 			auto args = Content::createKeyboardCallbackObject(k);
-
-			var rv;
-
 			keyboardCallback.call(&args, 1); 
 
-			return true;
+			bool consumed = matchesKey || catchAllKeys == AllCatchBehaviour::Exclusive;
+			return consumed;
 		}
-
-		
 	}
 
 	return false;
@@ -2772,9 +2773,29 @@ String ScriptingApi::Content::ScriptComboBox::getItemText() const
 {
 	StringArray items = getItemList();
 
-    if(isPositiveAndBelow((int)value, (items.size()+1)))
+	auto customPopup = getScriptObjectProperty(Properties::useCustomPopup);
+
+	if(customPopup)
+	{
+		for(int i = 0; i < items.size(); i++)
+		{
+			auto s = items[i];
+			auto isHeadline = s.startsWith("**");
+			auto isSeparator = s.startsWith("___");
+
+			if(isHeadline || isSeparator)
+				items.remove(i--);
+		}
+	}
+
+	if(isPositiveAndBelow((int)value, (items.size()+1)))
     {
-        return items[(int)value - 1];
+        auto itemText = items[(int)value - 1];
+
+		if(customPopup)
+			return itemText.fromLastOccurrenceOf("::", false, false);
+		else
+			return itemText;
     }
     
     return "No options";
@@ -6773,13 +6794,6 @@ void ScriptingApi::Content::beginInitialization()
 
 void ScriptingApi::Content::setHeight(int newHeight) noexcept
 {
-	
-	if (newHeight > 800)
-	{
-		reportScriptError("Go easy on the height! (" + String(800) + "px is enough)");
-		return;
-	}
-
 	if(height != newHeight)
 	{
 		height = newHeight;
@@ -6791,12 +6805,6 @@ void ScriptingApi::Content::setHeight(int newHeight) noexcept
 
 void ScriptingApi::Content::setWidth(int newWidth) noexcept
 {
-	if (newWidth > 1280)
-	{
-		reportScriptError("Go easy on the width! (1280px is enough)");
-		return;
-	}
-
 	if(width != newWidth)
 	{
 		width = newWidth;
@@ -7593,7 +7601,7 @@ struct TextInputData: public ScriptingApi::Content::TextInputDataBase,
         
         inputLabel->setText(prop["text"].toString(), dontSendNotification);
         inputLabel->selectAll();
-        inputLabel->grabKeyboardFocus();
+        inputLabel->grabKeyboardFocusAsync();
     }
     
     void dismissAndCall(bool ok)
@@ -7603,7 +7611,11 @@ struct TextInputData: public ScriptingApi::Content::TextInputDataBase,
 
         var args[2] = {var(ok), var(inputLabel->getText())};
         
-        inputLabel->getParentComponent()->removeChildComponent(inputLabel);
+        if(auto pc = inputLabel->getParentComponent())
+        {
+            pc->removeChildComponent(inputLabel);
+        }
+        
         inputLabel = nullptr;
         
         if(callback)

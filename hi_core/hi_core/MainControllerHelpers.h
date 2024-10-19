@@ -166,17 +166,15 @@ struct ValueToTextConverter
 		}
 	};
 
-	String operator()(double v) const
+	String getTextForValue(double v) const
 	{
 		if(!active)
 			return String(v, 0);
 
 		if(!itemList.isEmpty())
 		{
-			auto idx = roundToInt(v);
-
-			if(isPositiveAndBelow(idx, itemList.size()))
-				return itemList[idx];
+			auto idx = jlimit<int>(0, itemList.size(), roundToInt(v));
+			return itemList[idx];
 		}
 
 		if(valueToTextFunction)
@@ -188,7 +186,13 @@ struct ValueToTextConverter
 		return valueString;
 	}
 
-	double operator()(const String& v)
+	String operator()(double v) const
+	{
+		return getTextForValue(v);
+		
+	}
+
+	double getValueForText(const String& v) const
 	{
 		if(!active)
 			return v.getDoubleValue();
@@ -200,6 +204,36 @@ struct ValueToTextConverter
 			return textToValueFunction(v);
 
 		return v.getDoubleValue();
+	}
+
+	double operator()(const String& v) const
+	{
+		return getValueForText(v);
+	}
+
+	static ValueToTextConverter createForOptions(const StringArray& options)
+	{
+		ValueToTextConverter vtc;
+		vtc.active = true;
+		vtc.itemList = options;
+		return vtc;
+	}
+
+	static ValueToTextConverter createForMode(const String& modeString)
+	{
+		ValueToTextConverter vtc;
+		
+#define FUNC(x) if(modeString == #x) { vtc.active = true; vtc.valueToTextFunction = ConverterFunctions::x; vtc.textToValueFunction = InverterFunctions::x; }
+
+		FUNC(Frequency);
+		FUNC(Time);
+		FUNC(TempoSync);
+		FUNC(Pan);
+		FUNC(NormalizedPercentage);
+
+#undef FUNC
+
+		return vtc;
 	}
 
 	static ValueToTextConverter fromString(const String& converterString)
@@ -270,6 +304,15 @@ struct ValueToTextConverter
 	StringArray itemList;
 	double stepSize = 0.01;
 	String suffix;
+};
+
+class RuntimeTargetHolder
+{
+public:
+
+	virtual ~RuntimeTargetHolder() {};
+	virtual void connectRuntimeTargets(MainController* mc) = 0;
+	virtual void disconnectRuntimeTargets(MainController* mc) = 0;
 };
 
 /** This handles the MIDI automation for the frontend plugin.
