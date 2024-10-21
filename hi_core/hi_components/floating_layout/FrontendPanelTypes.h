@@ -496,12 +496,14 @@ public:
 		ShowAddButton,
 		ShowRenameButton,
 		ShowDeleteButton,
+    ShowSearchBar,
 		ButtonsInsideBorder,
 		ColumnRowPadding,
 		SearchBarBounds,
 		SaveButtonBounds,
 		MoreButtonBounds,
 		FavoriteButtonBounds,
+    FullPathFavorites,
 		numSpecialProperties
 	};
 
