@@ -1000,6 +1000,7 @@ public:
 			enableMidiLearn,
 			sendValueOnDrag,
 			matrixTargetId,
+			dragThumbOnly,
 			numProperties,
 		};
 

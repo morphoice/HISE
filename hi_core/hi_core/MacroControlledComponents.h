@@ -846,6 +846,22 @@ public:
 
 	void setSendValueOnDrag(bool shouldSend) { sendValueOnDrag = shouldSend; }
 
+	/** When true, a drag only starts if the mouse-down is on the thumb, not on
+	    the groove. Also disables snap-to-mouse so the thumb drag is relative
+	    (no jump on click). Defaults off, so normal sliders are unaffected. */
+	void setDragThumbOnly(bool shouldOnlyDragThumb)
+	{
+		dragThumbOnly = shouldOnlyDragThumb;
+		if (shouldOnlyDragThumb)
+			setSliderSnapsToMousePosition(false);
+	}
+
+	/** Visible handle height in px and extra grab px for the drop shadow. Must
+	    match what the LookAndFeel's drawLinearSlider paints so the thumb-only
+	    hit-test lines up with the drawn handle. */
+	void setDragThumbSize(int sizePx) { dragThumbSize = sizePx; }
+	void setDragThumbPad(int padPx)   { dragThumbPad = padPx; }
+
 	void resized() override;
 
 	ValueToTextConverter getValueToTextConverter() const override;
@@ -990,6 +1006,10 @@ private:
 	HoverPopupLookandFeel fallback;
 
 	bool skipGestureActive = false;
+
+	bool dragThumbOnly = false;
+	int dragThumbSize = 24;	// visible handle height (px) drawn by the LookAndFeel
+	int dragThumbPad = 4;	// extra grab px for the drop shadow under the handle
 };
 
 

@@ -2093,7 +2093,8 @@ maximum(1.0f)
 	ADD_SCRIPT_PROPERTY(i15, "scrollWheel"); 	ADD_TO_TYPE_SELECTOR(SelectorTypes::ToggleSelector);
 	ADD_SCRIPT_PROPERTY(i16, "enableMidiLearn"); ADD_TO_TYPE_SELECTOR(SelectorTypes::ToggleSelector);
 	ADD_SCRIPT_PROPERTY(i17, "sendValueOnDrag"); ADD_TO_TYPE_SELECTOR(SelectorTypes::ToggleSelector);
-	ADD_SCRIPT_PROPERTY(i18, "matrixTargetId"); 
+	ADD_SCRIPT_PROPERTY(i18, "matrixTargetId");
+	ADD_SCRIPT_PROPERTY(i19, "dragThumbOnly"); ADD_TO_TYPE_SELECTOR(SelectorTypes::ToggleSelector);
 
 	priorityProperties.add(getIdFor(Mode));
 
@@ -2121,7 +2122,8 @@ maximum(1.0f)
 	setDefaultValue(ScriptSlider::Properties::enableMidiLearn, true);
 	setDefaultValue(ScriptSlider::Properties::sendValueOnDrag, true);
 	setDefaultValue(ScriptSlider::Properties::matrixTargetId, "");
-	
+	setDefaultValue(ScriptSlider::Properties::dragThumbOnly, false);
+
 	ScopedValueSetter<bool> svs(removePropertyIfDefault, false);
 
 	const bool dontUpdateMode = !getPropertyValueTree().hasProperty(getIdFor(Mode));

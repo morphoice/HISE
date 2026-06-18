@@ -1966,6 +1966,28 @@ void HiSlider::mouseDown(const MouseEvent &e)
 
         if (!isConnectedToModulator())
         {
+            // dragThumbOnly: a LEFT-click off the handle does not start a drag.
+            // !isPopupMenu() lets right-clicks through to Slider::mouseDown, where
+            // the MIDI-learn / context menu lives (checkLearnMode already ran above).
+            if (dragThumbOnly && !e.mods.isPopupMenu())
+            {
+                // Hit-test against the DRAWN handle centre, not getPositionOfValue():
+                // for bar styles getSliderLayout() gives no thumb inset, so
+                // getPositionOfValue() runs edge-to-edge while the inset handle
+                // centre runs [half .. extent-half] -- they diverge at the
+                // extremes. valueToProportionOfLength respects the range skew.
+                const int half = dragThumbSize / 2;
+                const int extent = isVertical() ? getHeight() : getWidth();
+                const double prop = valueToProportionOfLength(getValue());
+                const double t = isVertical() ? (1.0 - prop) : prop;
+                const int centre = (int)(half + t * (extent - 2 * half));
+                const int clickPos = isVertical() ? e.getMouseDownPosition().getY()
+                                                  : e.getMouseDownPosition().getX();
+
+                if (std::abs(clickPos - centre) > half + dragThumbPad)
+                    return; // left-click on the groove, not the handle
+            }
+
             Slider::mouseDown(e);
             startTouch(e.getMouseDownPosition());
         }

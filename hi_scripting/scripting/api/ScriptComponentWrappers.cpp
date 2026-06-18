@@ -773,6 +773,7 @@ void ScriptCreatedComponentWrappers::SliderWrapper::updateComponent(int property
 		PROPERTY_CASE::ScriptComponent::tooltip :		s->setTooltip(GET_SCRIPT_PROPERTY(tooltip)); break;
 		PROPERTY_CASE::ScriptSlider::enableMidiLearn:   s->setCanBeMidiLearned(newValue); break;
 		PROPERTY_CASE::ScriptSlider::sendValueOnDrag:   s->setSendValueOnDrag((bool)newValue); break;
+		PROPERTY_CASE::ScriptSlider::dragThumbOnly:     s->setDragThumbOnly((bool)newValue); break;
 		PROPERTY_CASE::ScriptComponent::bgColour:
 		PROPERTY_CASE::ScriptComponent::itemColour :
 		PROPERTY_CASE::ScriptComponent::itemColour2 :
